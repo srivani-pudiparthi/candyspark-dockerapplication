@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "candyspark-app"
+        IMAGE_TAG  = "new"
+        IMAGE_FULL = "${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/srivani-pudiparthi/candyspark-dockerapplication.git', branch: 'main'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_FULL} ."
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh '''
+                        if [ $(docker ps -aq -f name=candyspark-app) ]; then
+                            docker rm -f candyspark-app
+                        fi
+                    '''
+                    sh "docker run -d -p 8085:80 --name candyspark-app ${IMAGE_FULL}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Application is running at http://<jenkins-host>:8085"
+        }
+        failure {
+            echo "❌ Pipeline failed!"
+        }
+    }
+}
